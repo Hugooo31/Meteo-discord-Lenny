@@ -1,0 +1,31 @@
+name: 🌤️ Daily Weather Bot
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # Chaque jour à 7h00 UTC (8h ou 9h Paris selon heure été/hiver)
+  workflow_dispatch:        # Permet de déclencher manuellement depuis l'onglet Actions
+
+jobs:
+  send-weather:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: 🔨 Compiler WeatherBot.java
+        run: javac WeatherBot.java
+
+      - name: 🚀 Envoyer la météo sur Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          LATITUDE:  "43.6047"    # Toulouse — change selon ta ville
+          LONGITUDE: "1.4442"
+          CITY_NAME: "Toulouse"
+        run: java WeatherBot
