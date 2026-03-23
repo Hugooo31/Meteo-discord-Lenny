@@ -82,8 +82,10 @@ public class WeatherBot {
         int idx = json.indexOf(search);
         if (idx == -1) return 0;
         int start = idx + search.length();
-        int end = json.indexOf(",", start);
-        if (end == -1) end = json.indexOf("]", start);
+        int endComma  = json.indexOf(",", start);
+        int endBracket = json.indexOf("]", start);
+        // Prendre le plus proche des deux délimiteurs
+        int end = (endComma != -1 && endComma < endBracket) ? endComma : endBracket;
         return Double.parseDouble(json.substring(start, end).trim());
     }
 
