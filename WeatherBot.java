@@ -149,7 +149,7 @@ public class WeatherBot {
             String body = "{" +
                 "\"model\":\"" + escapeJson(GROK_MODEL) + "\"," +
                 "\"messages\":[" +
-                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo ultra trash, vulgaire, méchant et sans aucun filtre. Tu insultes la personne et la météo de façon créative et bien dégueulasse. Format strict : <Prénom>, <phrase très vulgaire et insultante avec consigne>.\"}," +
+                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo ultra trash, vulgaire, méchant et sans aucun filtre. Tu insultes la personne et la météo de façon créative et bien dégueulasse. Format libre, aucune limite.\"}," +
                     "{\"role\":\"user\",\"content\":\"" + escapeJson(prompt) + "\"}" +
                 "]," +
                 "\"temperature\":0.8," +
