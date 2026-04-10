@@ -128,25 +128,29 @@ public class WeatherBot {
         return "Conditions inconnues";
     }
 
-    private static String generateTrashLine(HttpClient client, String targetName, String condition, double tempMin, double tempMax, double precip, double windspeed) {
+        private static String generateTrashLine(HttpClient client, String targetName, String condition, double tempMin, double tempMax, double precip, double windspeed) {
         if (GROK_API_KEY == null || GROK_API_KEY.isBlank()) {
             return fallbackTrashLine(targetName, condition, tempMax, precip, windspeed);
         }
 
         try {
             String prompt = String.format(
-                "Génère UNE phrase courte en français, trash et vulgaire, sur cette météo. " +
-                "La phrase doit commencer exactement par '%s,' et rester logique. " +
-                "Donne une consigne concrète selon la météo (mets un pull, prends un parapluie, reste dedans, etc.). " +
-                "Tutoiement obligatoire. Maximum 14 mots. Pas de guillemets, pas de hashtags, pas d'explication. " +
-                "Météo: %s, min %.1f°C, max %.1f°C, pluie %.1f mm, vent %.1f km/h.",
-                targetName, condition, tempMin, tempMax, precip, windspeed
+                "Génère UNE phrase ULTRA COURTE en français, MAXIMUM 13-14 mots, très vulgaire et trash. " +
+                "La phrase doit commencer EXACTEMENT par '%s,' (avec la virgule). " +
+                "Insulte bien la personne et la météo de façon bien dégueulasse. " +
+                "Exemples de style pour l'en-tête : temps de merde / météo de fils de pute / temps de sa race / ciel de enculé / etc. " +
+                "Pour la suite : sois encore plus méchant avec %s (genre 'espèce de bite molle', 'sale con', 'fils de pute', 'enculé', 'bouffon', 'gros tas', 'sale tafiole', 'petite merde', etc.). " +
+                "Donne une consigne concrète selon la météo (mets un pull de merde, prends un parapluie ou crève dehors, reste dans ton trou, etc.). " +
+                "Tutoiement obligatoire, langage très cru, pas de filtre. " +
+                "Pas de guillemets, pas d'explication, pas de smiley, juste la phrase. " +
+                "Météo : %s, min %.1f°C, max %.1f°C, pluie %.1f mm, vent %.1f km/h.",
+                targetName, targetName, condition, tempMin, tempMax, precip, windspeed
             );
 
             String body = "{" +
                 "\"model\":\"" + escapeJson(GROK_MODEL) + "\"," +
                 "\"messages\":[" +
-                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo trash, vulgaire, concis et créatif. Format strict: <Prénom>, <consigne météo vulgaire>.\"}," +
+                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo ultra trash, vulgaire, méchant et sans aucun filtre. Tu insultes la personne et la météo de façon créative et bien dégueulasse. Format strict : <Prénom>, <phrase très vulgaire et insultante avec consigne>.\"}," +
                     "{\"role\":\"user\",\"content\":\"" + escapeJson(prompt) + "\"}" +
                 "]," +
                 "\"temperature\":0.8," +
@@ -161,15 +165,14 @@ public class WeatherBot {
                 .build();
 
             HttpResponse<String> grokResponse = client.send(grokRequest, HttpResponse.BodyHandlers.ofString());
+
             if (grokResponse.statusCode() >= 200 && grokResponse.statusCode() < 300) {
                 String line = extractContentFromChatResponse(grokResponse.body());
                 if (line != null && !line.isBlank()) {
                     String cleaned = line.trim().replace("\n", " ").replace("\"", "");
                     String expectedPrefix = targetName + ",";
-                    String lower = cleaned.toLowerCase();
-                    String expectedLower = targetName.toLowerCase();
 
-                    if (lower.startsWith(expectedLower)) {
+                    if (cleaned.toLowerCase().startsWith(targetName.toLowerCase())) {
                         String rest = cleaned.substring(targetName.length()).trim();
                         if (rest.startsWith(",")) {
                             rest = rest.substring(1).trim();
@@ -190,6 +193,7 @@ public class WeatherBot {
         return fallbackTrashLine(targetName, condition, tempMax, precip, windspeed);
     }
 
+    
     private static String buildTitle(String condition, double tempMax, double precip, double windspeed) {
         if (condition.toLowerCase().contains("orage")) return "Coup de tonnerre sur la journée";
         if (precip > 5) return "Déluge en approche";
