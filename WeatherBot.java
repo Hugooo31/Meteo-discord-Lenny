@@ -135,7 +135,7 @@ public class WeatherBot {
             );
 
             if (grokResponse.statusCode() >= 200 && grokResponse.statusCode() < 300) {
-                String content = extractFirst(grokResponse.body(), "content");
+                String content = extractContentFromChatResponse(grokResponse.body());
                 if (content != null && !content.isBlank()) {
                     return content.replace("\n", " ").replaceAll("\\s+", " ").trim();
                 }
