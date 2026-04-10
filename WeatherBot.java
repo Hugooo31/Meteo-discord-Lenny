@@ -136,8 +136,9 @@ public class WeatherBot {
         try {
             String prompt = String.format(
                 "Génère UNE phrase courte en français, trash et vulgaire, sur cette météo. " +
-                "La phrase doit s'adresser directement à %s (utilise son prénom). " +
-                "Maximum 12 mots. Pas de guillemets, pas de hashtags, pas d'explication. " +
+                "La phrase doit commencer exactement par '%s,' et rester logique. " +
+                "Donne une consigne concrète selon la météo (mets un pull, prends un parapluie, reste dedans, etc.). " +
+                "Tutoiement obligatoire. Maximum 14 mots. Pas de guillemets, pas de hashtags, pas d'explication. " +
                 "Météo: %s, min %.1f°C, max %.1f°C, pluie %.1f mm, vent %.1f km/h.",
                 targetName, condition, tempMin, tempMax, precip, windspeed
             );
@@ -145,7 +146,7 @@ public class WeatherBot {
             String body = "{" +
                 "\"model\":\"" + escapeJson(GROK_MODEL) + "\"," +
                 "\"messages\":[" +
-                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo trash, vulgaire, concis et créatif.\"}," +
+                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo trash, vulgaire, concis et créatif. Format strict: <Prénom>, <consigne météo vulgaire>.\"}," +
                     "{\"role\":\"user\",\"content\":\"" + escapeJson(prompt) + "\"}" +
                 "]," +
                 "\"temperature\":0.8," +
@@ -163,9 +164,19 @@ public class WeatherBot {
             if (grokResponse.statusCode() >= 200 && grokResponse.statusCode() < 300) {
                 String line = extractContentFromChatResponse(grokResponse.body());
                 if (line != null && !line.isBlank()) {
-                    String cleaned = line.trim().replace("\n", " ");
-                    if (!cleaned.toLowerCase().contains(targetName.toLowerCase())) {
-                        cleaned = targetName + ", " + cleaned;
+                    String cleaned = line.trim().replace("\n", " ").replace("\"", "");
+                    String expectedPrefix = targetName + ",";
+                    String lower = cleaned.toLowerCase();
+                    String expectedLower = targetName.toLowerCase();
+
+                    if (lower.startsWith(expectedLower)) {
+                        String rest = cleaned.substring(targetName.length()).trim();
+                        if (rest.startsWith(",")) {
+                            rest = rest.substring(1).trim();
+                        }
+                        cleaned = expectedPrefix + " " + rest;
+                    } else {
+                        cleaned = expectedPrefix + " " + cleaned;
                     }
                     return cleaned;
                 }
@@ -191,12 +202,12 @@ public class WeatherBot {
 
     private static String fallbackTrashLine(String targetName, String condition, double tempMax, double precip, double windspeed) {
         if (precip > 5) return targetName + ", il pleut sa race, prends un putain de parapluie.";
-        if (condition.toLowerCase().contains("orage")) return targetName + ", le ciel pète les plombs, reste pas comme un con dehors.";
-        if (tempMax >= 28) return targetName + ", ça cogne sa mère, tu vas fondre comme une merde.";
-        if (tempMax <= 5) return targetName + ", ça caille sévère, sors couvert bordel.";
-        if (windspeed >= 45) return targetName + ", le vent tabasse tout, accroche ton cul.";
-        if (condition.toLowerCase().contains("neige")) return targetName + ", ça neige comme un bâtard, glisse pas comme un débile.";
-        return targetName + ", temps bâtard, journée de merde en perspective.";
+        if (condition.toLowerCase().contains("orage")) return targetName + ", ça pète dehors, reste dedans et ferme ta gueule.";
+        if (tempMax >= 28) return targetName + ", ça cogne fort, bois de l'eau et reste à l'ombre bordel.";
+        if (tempMax <= 5) return targetName + ", ça caille sévère, mets un putain de pull et couvre-toi.";
+        if (windspeed >= 45) return targetName + ", ça souffle violent, prends une veste et sors pas n'importe comment.";
+        if (condition.toLowerCase().contains("neige")) return targetName + ", ça neige sale, mets des pompes qui accrochent et fais gaffe.";
+        return targetName + ", météo bâtarde, prends une veste et évite de traîner dehors.";
     }
 
     private static String pickRandomName() {
