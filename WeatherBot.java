@@ -135,8 +135,7 @@ public class WeatherBot {
 
         try {
             String prompt = String.format(
-                "Génère UNE phrase ULTRA COURTE en français, MAXIMUM 13-14 mots, très vulgaire et trash. " +
-                "La phrase doit commencer EXACTEMENT par '%s,' (avec la virgule). " +
+                "Génère UNE phrase en français, ou tu insulte le nom que je te donne, sois mechant  très vulgaire et trash. " +
                 "Insulte bien la personne de façon bien mechante. " +
                 "Exemples de style pour l'en-tête : temps de merde / météo de fils de pute / temps de sa race / ciel de enculé / etc. " +
                 "Pour la suite : sois encore plus insultant avec %s (genre 'espèce de bite molle', 'sale con', 'fils de pute', 'enculé', 'bouffon', 'gros tas', 'sale tafiole', 'petite merde', etc.). " +
