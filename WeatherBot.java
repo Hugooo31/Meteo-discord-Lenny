@@ -3,6 +3,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WeatherBot {
 
@@ -13,6 +14,7 @@ public class WeatherBot {
     private static final String CITY_NAME = System.getenv().getOrDefault("CITY_NAME", "Toulouse");
     private static final String GROK_API_KEY = System.getenv().getOrDefault("GROK_API_KEY", System.getenv().getOrDefault("XAI_API_KEY", ""));
     private static final String GROK_MODEL = System.getenv().getOrDefault("GROK_MODEL", "grok-2-latest");
+    private static final String[] TARGET_NAMES = {"Yann", "Baptiste", "Lenny", "Colin", "Hugo"};
 
     public static void main(String[] args) throws Exception {
         HttpClient client = HttpClient.newHttpClient();
@@ -45,18 +47,20 @@ public class WeatherBot {
         String date      = LocalDate.now().toString();
         String emoji     = wmoToEmoji(wmoCode);
         String condition = wmoToLabel(wmoCode);
-        String funnyLine = generateFunnyLine(client, condition, tempMin, tempMax, precip, windspeed);
+        String targetName = pickRandomName();
+        String titleLine = buildTitle(condition, tempMax, precip, windspeed);
+        String trashLine = generateTrashLine(client, targetName, condition, tempMin, tempMax, precip, windspeed);
 
         String message = String.format(
-            "## %s Météo du jour — %s — %s\\n" +
+            "## %s %s — %s — %s\\n" +
             "**%s**\\n\\n" +
-            "😄 **Phrase du jour :** %s\\n\\n" +
+            "🤬 %s\\n\\n" +
             "🌡️ **Températures :** %.1f°C / %.1f°C\\n" +
             "🌧️ **Précipitations :** %.1f mm\\n" +
             "💨 **Vent max :** %.1f km/h",
-            emoji, CITY_NAME, date,
+            emoji, titleLine, CITY_NAME, date,
             condition,
-            funnyLine,
+            trashLine,
             tempMin, tempMax,
             precip,
             windspeed
@@ -124,23 +128,24 @@ public class WeatherBot {
         return "Conditions inconnues";
     }
 
-    private static String generateFunnyLine(HttpClient client, String condition, double tempMin, double tempMax, double precip, double windspeed) {
+    private static String generateTrashLine(HttpClient client, String targetName, String condition, double tempMin, double tempMax, double precip, double windspeed) {
         if (GROK_API_KEY == null || GROK_API_KEY.isBlank()) {
-            return fallbackFunnyLine(condition, tempMax, precip, windspeed);
+            return fallbackTrashLine(targetName, condition, tempMax, precip, windspeed);
         }
 
         try {
             String prompt = String.format(
-                "Génère UNE phrase courte et drôle en français sur cette météo. " +
+                "Génère UNE phrase courte en français, trash et vulgaire, sur cette météo. " +
+                "La phrase doit s'adresser directement à %s (utilise son prénom). " +
                 "Maximum 12 mots. Pas de guillemets, pas de hashtags, pas d'explication. " +
                 "Météo: %s, min %.1f°C, max %.1f°C, pluie %.1f mm, vent %.1f km/h.",
-                condition, tempMin, tempMax, precip, windspeed
+                targetName, condition, tempMin, tempMax, precip, windspeed
             );
 
             String body = "{" +
                 "\"model\":\"" + escapeJson(GROK_MODEL) + "\"," +
                 "\"messages\":[" +
-                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo drôle et concis.\"}," +
+                    "{\"role\":\"system\",\"content\":\"Tu es un assistant météo trash, vulgaire, concis et créatif.\"}," +
                     "{\"role\":\"user\",\"content\":\"" + escapeJson(prompt) + "\"}" +
                 "]," +
                 "\"temperature\":0.8," +
@@ -158,7 +163,11 @@ public class WeatherBot {
             if (grokResponse.statusCode() >= 200 && grokResponse.statusCode() < 300) {
                 String line = extractContentFromChatResponse(grokResponse.body());
                 if (line != null && !line.isBlank()) {
-                    return line.trim().replace("\n", " ");
+                    String cleaned = line.trim().replace("\n", " ");
+                    if (!cleaned.toLowerCase().contains(targetName.toLowerCase())) {
+                        cleaned = targetName + ", " + cleaned;
+                    }
+                    return cleaned;
                 }
             } else {
                 System.err.println("⚠️ Grok indisponible (" + grokResponse.statusCode() + "), fallback local.");
@@ -167,17 +176,32 @@ public class WeatherBot {
             System.err.println("⚠️ Erreur Grok, fallback local: " + e.getMessage());
         }
 
-        return fallbackFunnyLine(condition, tempMax, precip, windspeed);
+        return fallbackTrashLine(targetName, condition, tempMax, precip, windspeed);
     }
 
-    private static String fallbackFunnyLine(String condition, double tempMax, double precip, double windspeed) {
-        if (precip > 5) return "Parapluie obligatoire, coiffure optionnelle.";
-        if (condition.toLowerCase().contains("orage")) return "Le ciel lance des rage-quits aujourd'hui.";
-        if (tempMax >= 28) return "Journée sans t-shirt, mode grille-pain activé.";
-        if (tempMax <= 5) return "Il fait froid au point que mon café demande une doudoune.";
-        if (windspeed >= 45) return "Coiffure aérodynamique offerte par le vent.";
-        if (condition.toLowerCase().contains("neige")) return "Bonhomme de neige en réunion de chantier.";
-        return "Météo correcte, excuses pour rester au lit invalidées.";
+    private static String buildTitle(String condition, double tempMax, double precip, double windspeed) {
+        if (condition.toLowerCase().contains("orage")) return "Coup de tonnerre sur la journée";
+        if (precip > 5) return "Déluge en approche";
+        if (windspeed >= 45) return "Journée soufflée";
+        if (tempMax >= 28) return "Fournée humaine";
+        if (tempMax <= 5) return "Congélo à ciel ouvert";
+        if (condition.toLowerCase().contains("neige")) return "Poudreuse et chaos";
+        return "Météo du sale temps";
+    }
+
+    private static String fallbackTrashLine(String targetName, String condition, double tempMax, double precip, double windspeed) {
+        if (precip > 5) return targetName + ", il pleut sa race, prends un putain de parapluie.";
+        if (condition.toLowerCase().contains("orage")) return targetName + ", le ciel pète les plombs, reste pas comme un con dehors.";
+        if (tempMax >= 28) return targetName + ", ça cogne sa mère, tu vas fondre comme une merde.";
+        if (tempMax <= 5) return targetName + ", ça caille sévère, sors couvert bordel.";
+        if (windspeed >= 45) return targetName + ", le vent tabasse tout, accroche ton cul.";
+        if (condition.toLowerCase().contains("neige")) return targetName + ", ça neige comme un bâtard, glisse pas comme un débile.";
+        return targetName + ", temps bâtard, journée de merde en perspective.";
+    }
+
+    private static String pickRandomName() {
+        int idx = ThreadLocalRandom.current().nextInt(TARGET_NAMES.length);
+        return TARGET_NAMES[idx];
     }
 
     private static String extractContentFromChatResponse(String json) {
