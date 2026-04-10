@@ -220,4 +220,45 @@ public class WeatherBot {
             return 0.0;
         }
     }
+
+    // Extrait le premier champ "content" trouvé dans la réponse chat.
+    private static String extractContentFromChatResponse(String json) {
+        String search = "\"content\":\"";
+        int idx = json.indexOf(search);
+        if (idx == -1) return null;
+
+        int start = idx + search.length();
+        StringBuilder out = new StringBuilder();
+        boolean escaped = false;
+
+        for (int i = start; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                switch (c) {
+                    case 'n' -> out.append('\n');
+                    case 'r' -> out.append('\r');
+                    case 't' -> out.append('\t');
+                    case '"' -> out.append('"');
+                    case '\\' -> out.append('\\');
+                    case '/' -> out.append('/');
+                    default -> out.append(c);
+                }
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                break;
+            }
+
+            out.append(c);
+        }
+
+        return out.toString();
+    }
 }
